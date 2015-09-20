@@ -72,7 +72,7 @@ onload = function(){
 
 	// シェーダ変数の無効化
 	gl.disableVertexAttribArray(a_Position);
-	
+
 	// シェーダプログラムの無効化
 	gl.useProgram(null);
 
@@ -160,11 +160,3 @@ function create_vbo(data) {
 
 	return vbo;
 }
-
-
-
-
-
-
-
-

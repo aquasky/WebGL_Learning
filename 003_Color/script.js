@@ -174,11 +174,3 @@ function create_vbo(data) {
 
 	return vbo;
 }
-
-
-
-
-
-
-
-
