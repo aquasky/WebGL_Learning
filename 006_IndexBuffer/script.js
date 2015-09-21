@@ -76,6 +76,14 @@ onload = function(){
 	gl.uniformMatrix4fv(u_ViewM, false, viewM);
 	gl.uniformMatrix4fv(u_ProjectionM, false, projectionM);
 
+	// 深度テスト
+	gl.enable(gl.DEPTH_TEST);
+	gl.depthFunc(gl.LEQUAL);
+
+	// カリング
+	gl.enable(gl.CULL_FACE);
+	gl.frontFace(gl.CCW);
+
 	// 描画ループ
 	var count = 0;
 	(function(){
