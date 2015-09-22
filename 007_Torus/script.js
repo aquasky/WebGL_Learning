@@ -1,31 +1,12 @@
 var gl;		// GLコンテキスト
 
-var square_position = [
-	-1.0, -1.0, 0.0,
-	 1.0, -1.0, 0.0,
-	-1.0,  1.0, 0.0,
-	 1.0,  1.0, 0.0
-];
-
-var square_color = [
-	1.0, 0.0, 0.0, 1.0,
-	0.0, 1.0, 0.0, 1.0,
-	0.0, 0.0, 1.0, 1.0,
-	1.0, 1.0, 1.0, 1.0
-];
-
-var square_index = [
-	0, 1, 2,
-	1, 2, 3
-];
-
 onload = function(){
 	// canvasエレメントの取得
 	var c = document.getElementById("canvas");
 
 	// GL初期化
 	initGL(c);
-	gl.clearColor(0.5, 0.75, 0.75, 1.0);	// 指定色でクリア
+	gl.clearColor(0.0, 0.0, 0.0, 1.0);		// 指定色でクリア
 	gl.clearDepth(1.0);						// デプスのクリア
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
@@ -41,15 +22,21 @@ onload = function(){
 	var u_ViewM = gl.getUniformLocation(prg, "u_ViewM");
 	var u_ProjectionM = gl.getUniformLocation(prg, "u_ProjectionM");
 
+	// トーラスモデルの生成
+	var torus_data = create_torus(32, 32, 1.0, 2.0);
+	var torus_position = torus_data[0];
+	var torus_color = torus_data[1];
+	var torus_index = torus_data[2];
+
 	// VBOの生成
-	var position_vbo = create_vbo(square_position);
-	var color_vbo = create_vbo(square_color);
+	var position_vbo = create_vbo(torus_position);
+	var color_vbo = create_vbo(torus_color);
 	set_attribute([position_vbo, color_vbo],		// VBO
 					[a_Position, a_Color],			// シェーダ変数
 					[3, 4]);						// 次元
 
 	// IBOの生成
-	var ibo = create_ibo(square_index);
+	var ibo = create_ibo(torus_index);
 	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo);	// 登録したインデックスを有効化
 
 	// MVP行列の設定
@@ -59,7 +46,7 @@ onload = function(){
 	var projectionM = m.identity(m.create());
 
 	// ビュー行列
-	m.lookAt([0.0, 0.0, 5.0],	// カメラ位置
+	m.lookAt([0.0, 0.0, 20.0],	// カメラ位置
 			 [0.0, 0.0, 0.0],	// 注視点
 			 [0.0, 1.0, 0.0],	// カメラの上方向
 			 viewM);
@@ -85,7 +72,7 @@ onload = function(){
 	// 描画ループ
 	var count = 0;
 	(function(){
-		gl.clearColor(0.5, 0.75, 0.75, 1.0);	// 指定色でクリア
+		gl.clearColor(0.0, 0.0, 0.0, 1.0);		// 指定色でクリア
 		gl.clearDepth(1.0);						// デプスのクリア
 		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
@@ -95,9 +82,9 @@ onload = function(){
 
 		// モデルを描画(Y軸で回転)
 		m.identity(modelM);
-		m.rotate(modelM, rad, [0.0, 1.0, 0.0], modelM);
+		m.rotate(modelM, rad, [0.0, 1.0, 1.0], modelM);
 		gl.uniformMatrix4fv(u_ModelM, false, modelM);
-		gl.drawElements(gl.TRIANGLES, square_index.length, gl.UNSIGNED_SHORT, 0);
+		gl.drawElements(gl.TRIANGLES, torus_index.length, gl.UNSIGNED_SHORT, 0);
 
 		gl.flush();
 
@@ -214,4 +201,69 @@ function create_ibo(data) {
 	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
 
 	return ibo;
+}
+
+// トーラスモデルの生成
+// row : パイプの分割数
+// column : 円の分割数
+// irad : パイプの半径
+// orad : 中心からパイプまでの距離
+function create_torus(row, column, irad, orad) {
+	var pos = new Array();
+	var col = new Array();
+	var idx = new Array();
+
+	// 頂点の生成
+	// パイプのループ
+	for (var i = 0; i <= row; ++i) {
+		var r = i * ((2.0 * Math.PI) / row);
+		var rr = Math.cos(r);
+		var ry = Math.sin(r);
+
+		// 円のループ
+		for (var j = 0; j <= column; ++j) {
+			var tr = j * ((2.0 * Math.PI) / column);
+			var tx = (rr * irad + orad) * Math.cos(tr);
+			var ty = ry * irad;
+			var tz = (rr * irad + orad) * Math.sin(tr);
+			pos.push(tx, ty, tz);
+			var tc = hsva(j * (360 / column), 1, 1, 1);
+			col.push(tc[0], tc[1], tc[2], tc[3]);
+		}
+	}
+
+	// インデックスの生成
+	for (var i = 0; i < row; ++i) {
+		for (var j = 0; j < column; ++j) {
+			var r = ((column + 1) * i) + j;
+			idx.push(r, r + column + 1, r + 1);
+			idx.push(r + column + 1, r + column + 2, r + 1);
+		}
+	}
+
+	return [pos, col, idx];
+}
+
+// HSV -> RGB変換
+// h : 0～360
+// s, v, a : 0～1
+function hsva(h, s, v, a) {
+	if (s > 1 || v > 1 || a > 1) { return [0.0, 0.0, 0.0, 1.0]; }
+	var th = h % 360;
+	var i = Math.floor(th / 60);	// Hの値によって場合分け
+	var f = th / 60 - i;
+	var m = v * (1 - s);
+	var n = v * (1 - (s * f));
+	var k = v * (1 - (s * (1 - f)));
+	var rgba = new Array();
+	if (!s > 0 && !s < 0) {
+		rgba.push(v, v, v, a);
+	}
+	else {
+		var r = new Array(v, n, m, m, k, v);
+		var g = new Array(k, v, v, n, m, m);
+		var b = new Array(m, m, k, v, v, n);
+		rgba.push(r[i], g[i], b[i], a);
+	}
+	return rgba;
 }

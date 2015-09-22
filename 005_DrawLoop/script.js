@@ -60,8 +60,6 @@ onload = function(){
 					projectionM);
 
 	// 行列データを転送
-	gl.enableVertexAttribArray(a_Position);
-	gl.enableVertexAttribArray(a_Color);
 	gl.uniformMatrix4fv(u_ViewM, false, viewM);
 	gl.uniformMatrix4fv(u_ProjectionM, false, projectionM);
 
