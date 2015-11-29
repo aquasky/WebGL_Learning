@@ -120,6 +120,7 @@ onload = function(){
 		// 球体のモデル行列を生成
 		m.identity(modelM);
 		m.translate(modelM, [-tx, ty, tz], modelM);
+		m.rotate(modelM, rad, [0.0, 1.0, 1.0], modelM);
 		gl.uniformMatrix4fv(u_ModelM, false, modelM);
 		m.inverse(modelM, invModelM);
 		gl.uniformMatrix4fv(u_InvModelM, false, invModelM);
